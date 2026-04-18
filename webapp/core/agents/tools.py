@@ -104,6 +104,65 @@ def _mcp_text(call_tool_result: Any) -> str:
     return "\n".join(parts) if parts else str(call_tool_result)
 
 
+def _unwrap_taskgroup(exc: BaseException) -> str:
+    """asyncio.TaskGroup 把多个子异常包成 ExceptionGroup, 默认 str(exc) 只是 'unhandled
+    errors in a TaskGroup (N sub-exceptions)', 完全没用. 这里平铺一遍找真实根因."""
+    msgs = []
+    seen = set()
+
+    def _walk(e: BaseException, depth: int = 0) -> None:
+        if id(e) in seen or depth > 5:
+            return
+        seen.add(id(e))
+        sub = getattr(e, "exceptions", None)
+        if sub:
+            for s in sub:
+                _walk(s, depth + 1)
+        else:
+            msgs.append(f"{type(e).__name__}: {e}")
+        cause = getattr(e, "__cause__", None) or getattr(e, "__context__", None)
+        if cause is not None:
+            _walk(cause, depth + 1)
+
+    _walk(exc)
+    if not msgs:
+        return f"{type(exc).__name__}: {exc}"
+    return " | ".join(msgs)
+
+
+async def _call_xhs_with_retry(
+    xhs_mcp_url: str,
+    tool_name: str,
+    payload: Dict[str, Any],
+    timeout: float,
+    retries: int = 1,
+) -> Any:
+    """调 xhs-mcp 一个 tool, 自动 unwrap TaskGroup 错误 + 失败重试一次."""
+    last_err: Optional[BaseException] = None
+    for attempt in range(retries + 1):
+        try:
+            async with _fresh_xhs_session(xhs_mcp_url) as s:
+                res = await asyncio.wait_for(
+                    s.call_tool(tool_name, payload),
+                    timeout=timeout,
+                )
+            return res
+        except asyncio.TimeoutError:
+            last_err = asyncio.TimeoutError(
+                f"{tool_name} 超过 {timeout}s 没返回 (xhs-mcp 浏览器可能卡住或被风控). "
+                f"重启服务: bash stop.sh && bash start.sh"
+            )
+        except BaseException as exc:  # noqa: BLE001 — 包含 ExceptionGroup
+            last_err = RuntimeError(
+                f"{tool_name} 失败 [尝试 {attempt + 1}/{retries + 1}]: "
+                f"{_unwrap_taskgroup(exc)}"
+            )
+        if attempt < retries:
+            await asyncio.sleep(1.5)
+    assert last_err is not None
+    raise last_err
+
+
 def make_xhs_tools(xhs_mcp_url: str) -> List[Tool]:
     """构建调 xhs-mcp 的工具集. 每次调用都开新 session 避免长连接污染."""
 
@@ -112,11 +171,9 @@ def make_xhs_tools(xhs_mcp_url: str) -> List[Tool]:
         if not keyword:
             raise ValueError("keyword 必填")
         # 实测: filters 参数会让 xhs-mcp 浏览器自动化 hang. 不传, 客户端排序.
-        async with _fresh_xhs_session(xhs_mcp_url) as s:
-            res = await asyncio.wait_for(
-                s.call_tool("search_feeds", {"keyword": keyword}),
-                timeout=90,
-            )
+        res = await _call_xhs_with_retry(
+            xhs_mcp_url, "search_feeds", {"keyword": keyword}, timeout=90, retries=1
+        )
         return _mcp_text(res)
 
     async def _get_feed_detail(args: Dict[str, Any]) -> Any:
@@ -124,11 +181,13 @@ def make_xhs_tools(xhs_mcp_url: str) -> List[Tool]:
         token = args.get("xsec_token")
         if not feed_id or not token:
             raise ValueError("feed_id 和 xsec_token 必填")
-        async with _fresh_xhs_session(xhs_mcp_url) as s:
-            res = await asyncio.wait_for(
-                s.call_tool("get_feed_detail", {"feed_id": feed_id, "xsec_token": token}),
-                timeout=120,
-            )
+        res = await _call_xhs_with_retry(
+            xhs_mcp_url,
+            "get_feed_detail",
+            {"feed_id": feed_id, "xsec_token": token},
+            timeout=120,
+            retries=1,
+        )
         return _mcp_text(res)
 
     async def _publish_content(args: Dict[str, Any]) -> Any:
@@ -144,16 +203,16 @@ def make_xhs_tools(xhs_mcp_url: str) -> List[Tool]:
             "images": images,
             "tags": tags,
         }
-        async with _fresh_xhs_session(xhs_mcp_url) as s:
-            res = await asyncio.wait_for(
-                s.call_tool("publish_content", publish_args),
-                timeout=180,
-            )
+        # 发布失败重试容易撞重复风控, 只跑一次
+        res = await _call_xhs_with_retry(
+            xhs_mcp_url, "publish_content", publish_args, timeout=180, retries=0
+        )
         return _mcp_text(res)
 
     async def _check_login(_: Dict[str, Any]) -> Any:
-        async with _fresh_xhs_session(xhs_mcp_url) as s:
-            res = await asyncio.wait_for(s.call_tool("check_login_status", {}), timeout=30)
+        res = await _call_xhs_with_retry(
+            xhs_mcp_url, "check_login_status", {}, timeout=30, retries=0
+        )
         return _mcp_text(res)
 
     return [

@@ -69,13 +69,17 @@ else
   nohup python app.py > app.log 2>&1 &
   echo $! > .webapp.pid
   cd "$ROOT"
-  sleep 3
-  if lsof -nP -i:8080 -sTCP:LISTEN >/dev/null 2>&1; then
-    echo "   ✅ webapp 已起 (PID=$(cat webapp/.webapp.pid), log=webapp/app.log)"
-  else
-    echo "   ❌ webapp 启动失败, 看日志: webapp/app.log"
-    exit 1
-  fi
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    sleep 1
+    if lsof -nP -i:8080 -sTCP:LISTEN >/dev/null 2>&1; then
+      echo "   ✅ webapp 已起 (PID=$(cat webapp/.webapp.pid), log=webapp/app.log)"
+      break
+    fi
+    if [ "$i" = "10" ]; then
+      echo "   ❌ webapp 10 秒还没监听 :8080, 看日志: webapp/app.log"
+      exit 1
+    fi
+  done
 fi
 
 echo ""
