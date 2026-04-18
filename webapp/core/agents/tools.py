@@ -163,7 +163,75 @@ async def _call_xhs_with_retry(
     raise last_err
 
 
-def make_xhs_tools(xhs_mcp_url: str) -> List[Tool]:
+async def _fallback_search_via_tavily(keyword: str, tavily_api_key: str) -> Dict[str, Any]:
+    """xhs-mcp search_feeds 上游 bug 时的 fallback (issue #657 #647 #640).
+
+    实测: Tavily 用 site:xiaohongshu.com 限定基本只返回重复的 user profile page,
+    没有营养. 改成 '{keyword} 小红书' 不限站, 能拿到混合的新闻/攻略/知乎/小红书
+    内容, 反而比单纯 xhs feeds 更有 "趋势研究" 价值.
+
+    返回结构兼容 xhs.search_feeds: {feeds: [{id, noteCard:{displayTitle, summary}}]}
+    """
+    import httpx
+
+    queries = [f"{keyword} 小红书", f"{keyword} 备考 经验"]
+    seen_urls: set[str] = set()
+    feeds = []
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        for q in queries:
+            try:
+                r = await client.post(
+                    "https://api.tavily.com/search",
+                    json={
+                        "api_key": tavily_api_key,
+                        "query": q,
+                        "search_depth": "basic",
+                        "max_results": 8,
+                        "include_answer": False,
+                    },
+                )
+                r.raise_for_status()
+                data = r.json()
+            except Exception:
+                continue
+
+            for item in (data.get("results") or []):
+                url = (item.get("url") or "").strip()
+                # 去 query string 后再 dedupe, 避免同 page 多版本
+                norm = url.split("?", 1)[0]
+                if not norm or norm in seen_urls:
+                    continue
+                seen_urls.add(norm)
+                feeds.append({
+                    "id": norm.rsplit("/", 1)[-1] or norm[-20:],
+                    "source": "tavily_fallback",
+                    "noteCard": {
+                        "displayTitle": (item.get("title") or "").strip(),
+                        "summary": (item.get("content") or "").strip()[:400],
+                        "url": url,
+                    },
+                })
+                if len(feeds) >= 12:
+                    break
+            if len(feeds) >= 12:
+                break
+
+    return {
+        "feeds": feeds,
+        "_note": (
+            "⚠️ 通过 Tavily web 搜索回退获得 (xhs-mcp search_feeds 上游 bug, "
+            "见 issue #657). 字段比原生 search_feeds 少: 没有 likes/comments/"
+            "xsec_token, 因此无法对结果调用 xhs.get_feed_detail. 来源混合 "
+            "(新闻/攻略博客/知乎 等), 直接基于 title+summary 提炼趋势和选题即可."
+        ),
+    }
+
+
+def make_xhs_tools(
+    xhs_mcp_url: str,
+    tavily_api_key: Optional[str] = None,
+) -> List[Tool]:
     """构建调 xhs-mcp 的工具集. 每次调用都开新 session 避免长连接污染."""
 
     async def _search_feeds(args: Dict[str, Any]) -> Any:
@@ -171,10 +239,24 @@ def make_xhs_tools(xhs_mcp_url: str) -> List[Tool]:
         if not keyword:
             raise ValueError("keyword 必填")
         # 实测: filters 参数会让 xhs-mcp 浏览器自动化 hang. 不传, 客户端排序.
-        res = await _call_xhs_with_retry(
-            xhs_mcp_url, "search_feeds", {"keyword": keyword}, timeout=90, retries=1
-        )
-        return _mcp_text(res)
+        try:
+            res = await _call_xhs_with_retry(
+                xhs_mcp_url, "search_feeds", {"keyword": keyword}, timeout=60, retries=2
+            )
+            return _mcp_text(res)
+        except Exception as exc:
+            # 上游 xhs-mcp search_feeds 已知 bug (issue #657 等): 多次重试仍失败,
+            # 自动 fallback 到 Tavily web 搜索. 没有 tavily key 才把异常抛给 LLM.
+            if tavily_api_key:
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    "🔁 search_feeds 重试 3 次仍失败, 自动 fallback 到 Tavily: %s",
+                    str(exc)[:200],
+                )
+                import json as _json
+                fallback = await _fallback_search_via_tavily(keyword, tavily_api_key)
+                return _json.dumps(fallback, ensure_ascii=False)
+            raise
 
     async def _get_feed_detail(args: Dict[str, Any]) -> Any:
         feed_id = args.get("feed_id")
@@ -219,7 +301,13 @@ def make_xhs_tools(xhs_mcp_url: str) -> List[Tool]:
         Tool(
             id="xhs.search_feeds",
             name="小红书搜索",
-            description="按关键词搜索小红书笔记, 返回 JSON {feeds: [{id, xsecToken, noteCard:{...}}]}. 默认按平台综合排序, 客户端再二次按点赞排.",
+            description=(
+                "按关键词搜索小红书笔记, 返回 JSON {feeds: [{id, xsecToken, noteCard:{...}}]}. "
+                "默认按平台综合排序, 客户端再二次按点赞排. "
+                "⚠️ xhs-mcp 上游有已知 bug 时, 自动 fallback 到 Tavily web 搜索, "
+                "返回结构里会带 _note 字段说明, 字段会少 (没 likes/xsec_token), "
+                "你直接基于 displayTitle+summary 做趋势判断即可, 不要再调 get_feed_detail."
+            ),
             args_schema={"type": "object", "required": ["keyword"], "properties": {
                 "keyword": {"type": "string", "description": "搜索词"}
             }},
@@ -452,7 +540,7 @@ def build_default_registry(
     image_model: str = "bytedance-seed/seedream-4.5",
 ) -> ToolRegistry:
     reg = ToolRegistry()
-    for t in make_xhs_tools(xhs_mcp_url):
+    for t in make_xhs_tools(xhs_mcp_url, tavily_api_key=tavily_api_key):
         reg.register(t)
     for t in make_web_tools(tavily_api_key):
         reg.register(t)
