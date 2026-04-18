@@ -1,0 +1,409 @@
+% !TEX TS-program = xelatex
+% !TEX encoding = UTF-8
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{xeCJK}
+\usepackage{fontspec}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{parskip}
+
+% --- 字体: macOS PingFang ---
+\setCJKmainfont{PingFang SC}[BoldFont={PingFang SC Semibold}]
+\setCJKsansfont{PingFang SC}
+\setCJKmonofont{PingFang SC}
+\setmonofont{Menlo}[Scale=0.88]
+
+% --- 颜色 ---
+\definecolor{xhsRed}{HTML}{FF2741}
+\definecolor{xhsBg}{HTML}{FFF7F8}
+\definecolor{codeGray}{HTML}{F4F4F4}
+\definecolor{warnYellow}{HTML}{FFF8E1}
+\definecolor{tipBlue}{HTML}{E8F4FD}
+
+\tcbuselibrary{breakable,skins}
+
+\newtcolorbox{tipbox}{
+  colback=tipBlue, colframe=blue!50!black,
+  boxrule=0.4pt, arc=2mm,
+  left=8pt, right=8pt, top=4pt, bottom=4pt,
+  breakable
+}
+\newtcolorbox{warnbox}{
+  colback=warnYellow, colframe=orange!70!black,
+  boxrule=0.4pt, arc=2mm,
+  left=8pt, right=8pt, top=4pt, bottom=4pt,
+  breakable
+}
+\newtcolorbox{cmdbox}{
+  colback=codeGray, colframe=gray!40,
+  boxrule=0.3pt, arc=1mm,
+  left=6pt, right=6pt, top=3pt, bottom=3pt,
+  fontupper=\ttfamily\small, breakable
+}
+
+% --- 链接 ---
+\hypersetup{
+  colorlinks=true,
+  linkcolor=xhsRed,
+  urlcolor=xhsRed,
+  citecolor=xhsRed
+}
+
+% --- 标题样式 ---
+\titleformat{\section}{\Large\bfseries\color{xhsRed}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.5em}{}
+
+% --- 页眉页脚 ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small XHS-HKDSE 营销自动化}
+\fancyhead[R]{\small 質心教育科技有限公司}
+\fancyfoot[C]{\small 第 \thepage{} 页 / 共 \pageref{LastPage} 页}
+\usepackage{lastpage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+\begin{document}
+
+% ============ 封面 ============
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\Huge\bfseries\color{xhsRed} XHS-HKDSE 营销自动化平台\par}
+\vspace{0.5cm}
+{\Large 使用教程 v1.0\par}
+\vspace{1.2cm}
+{\large 5 个 Agent 协作 · ByteDance Seedream 4.5 出图\\ 一次启动 10 篇带封面草稿 · 一键批量发小红书\par}
+\vspace{2cm}
+
+\begin{tcolorbox}[width=12cm, colback=xhsBg, colframe=xhsRed, arc=4mm]
+\centering\large
+\textbf{使用流程一句话总结}\\[6pt]
+打开浏览器 \(\to\) 配置 Key \(\to\) 扫码登录小红书 \(\to\) \\
+输入 N 个选题 \(\to\) 泡杯咖啡 \(\to\) 回来挑顺眼的批量发
+\end{tcolorbox}
+
+\vfill
+{\large 質心教育科技有限公司 · HKDSE 全科补习与升学指导\par}
+\vspace{0.4cm}
+{\small\today}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{这是什么}
+
+XHS-HKDSE 是一个\textbf{多 Agent 协作}的小红书内容自动化平台, 专为 \textbf{HKDSE 教育推广}场景定制.
+
+\subsection{核心能力}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{自动选题研究}: TrendScout 抓取小红书同类爆款 + Tavily 搜索热点
+  \item \textbf{自动写稿}: Strategist 出 brief \(\to\) Writer 写正文 \(\to\) Critic 审稿打分 \(\to\) Reviser 自动修订 (最多 3 轮)
+  \item \textbf{自动出图}: CoverDesigner 用 ByteDance Seedream 4.5 生成 1 封面 + 2 正文图 (中文小字渲染准确)
+  \item \textbf{自动事实核查}: Critic 反查 \texttt{[source: ]} 占位符并自动回填来源 URL
+  \item \textbf{批量模式}: 输入 10 个选题, 并发跑 3 个 workflow, 完事进「📝 草稿」tab
+  \item \textbf{一键发布}: 选中草稿 \(\to\) 批量发布按钮 \(\to\) 自动间隔 6s 顺序推到小红书
+\end{itemize}
+
+\subsection{5 个 Agent 是怎么分工的}
+
+\begin{tcolorbox}[colback=xhsBg, colframe=xhsRed!50, arc=2mm, breakable]
+\small
+\begin{tabular}{p{3.4cm} p{12cm}}
+\textbf{🔍 TrendScout} & 抓 5 篇同类爆款, 提取 hook / 句式 / 标签\\
+\textbf{🎯 Strategist} & 综合上面输出 brief: 角度 / 钩子 / 6 段大纲 / 封面概念\\
+\textbf{✍️ Writer} & 按 brief 写 800–1200 字正文 + 标题 + 标签\\
+\textbf{🔬 Critic} & 4 个维度打分 (合规/事实/读感/平台契合), 标 \texttt{[source: ]} 占位\\
+\textbf{♻️ Reviser} & 按 Critic 意见修订, Critic 再审, 通过即停 (最多 3 轮)\\
+\textbf{🎨 CoverDesigner} & 出 3 张图 (cover 3:4 + body\_1 1:1 + body\_2 1:1)\\
+\end{tabular}
+\end{tcolorbox}
+
+% ============================================================
+\section{准备工作 (只做一次)}
+
+\subsection{Step 1 · 启动 xhs-mcp (本地登录服务)}
+
+第一次启动需要扫码登录小红书; cookie 会缓存在 \texttt{xhs-mcp/cookies.json}, 之后不用再扫.
+
+\begin{cmdbox}
+cd /Users/lance/marketing/xhs-hkdse/xhs-mcp\\
+./xiaohongshu-login-darwin-arm64
+\end{cmdbox}
+
+\begin{itemize}[leftmargin=*]
+  \item 终端会弹一个 Chromium 窗口 + 打印一个二维码
+  \item 用手机小红书 App 扫码 (设置 \(\to\) 我 \(\to\) 扫一扫)
+  \item 看到 \texttt{登录成功！} 即可关闭
+\end{itemize}
+
+然后启动 MCP 服务 (新开一个 terminal):
+
+\begin{cmdbox}
+cd /Users/lance/marketing/xhs-hkdse/xhs-mcp\\
+./xhs-mcp serve --port 18060
+\end{cmdbox}
+
+\begin{tipbox}
+保持这个 terminal 开着. 服务跑在 \texttt{http://localhost:18060/mcp}.
+\end{tipbox}
+
+\subsection{Step 2 · 启动 Studio Web App}
+
+新开一个 terminal:
+
+\begin{cmdbox}
+cd /Users/lance/marketing/xhs-hkdse/webapp\\
+source .venv/bin/activate\\
+python app.py
+\end{cmdbox}
+
+看到 \texttt{Uvicorn running on http://0.0.0.0:8080} 就行了, 浏览器打开:
+
+\begin{center}
+\fcolorbox{xhsRed}{xhsBg}{\large\href{http://localhost:8080/studio}{\texttt{http://localhost:8080/studio}}}
+\end{center}
+
+\subsection{Step 3 · 填配置 (一次性)}
+
+进入 Studio \(\to\) 切到 \textbf{⚙️ 配置} tab, 填以下字段:
+
+\begin{tcolorbox}[colback=codeGray, colframe=gray!50, arc=2mm, breakable]
+\footnotesize
+\begin{tabular}{p{4cm} p{11cm}}
+\textbf{OpenRouter / OpenAI Key} & \texttt{sk-or-v1-...} (LLM 用; 已经填好就跳过)\\[3pt]
+\textbf{Base URL} & \texttt{https://openrouter.ai/api/v1}\\[3pt]
+\textbf{主力模型} & \texttt{anthropic/claude-sonnet-4.5} (推荐)\\[3pt]
+\textbf{Tavily Key} & \texttt{tvly-...} (可选, 事实核查时用)\\[3pt]
+\textbf{Jina Key} & \texttt{jina\_...} (可选, 网页阅读)\\[3pt]
+\textbf{xhs MCP URL} & \texttt{http://localhost:18060/mcp}\\
+\end{tabular}
+\end{tcolorbox}
+
+\begin{enumerate}[leftmargin=*]
+  \item 点 \textbf{✅ 验证模型} 看 LLM 通不通
+  \item 点 \textbf{🔓 测试登录} 看 xhs-mcp 通不通 (右上角 chip 应变绿: \texttt{🟢 已登录})
+  \item 点 \textbf{💾 保存配置}
+\end{enumerate}
+
+\begin{warnbox}
+\small
+图像生成 (Seedream 4.5) 复用 OpenRouter Key. 单张图 \$0.04, 一篇草稿 3 张约 \$0.12 (¥0.85).
+全程帐单走 OpenRouter, 不用单独再开账户.
+\end{warnbox}
+
+% ============================================================
+\section{核心用法 A · 批量出 10 篇带图草稿}
+
+这是最常用的玩法, 也是平台最大的价值点.
+
+\subsection{Step 1 · 切到「🤖 Agents」tab, 展开「📦 批量模式」}
+
+\subsection{Step 2 · 在主题列表里, 每行一个选题}
+
+支持 \texttt{关键词 | 主题 | 科目 | 方向} 格式 (后三段可省). \texttt{\#} 开头的行是注释会被跳过.
+
+\begin{cmdbox}
+DSE 中文 Paper 1 阅读策略 | 中文 | soft\_dry\_goods\\
+DSE 英文 Paper 2 写作高分模板 | 英文 | hard\_dry\_goods\\
+DSE 数学 Paper 1 拣分策略 | 数学\\
+\# 下面是注释, 会被跳过\\
+DSE 通识答题框架\\
+DSE 物理力学常错题\\
+DSE 化学有机推断套路\\
+DSE 生物 SBA 实验报告模板\\
+DSE BAFS 财务比率公式表\\
+JUPAS Band A 选科避坑\\
+DSE 中文 5** 范文结构拆解
+\end{cmdbox}
+
+\subsection{Step 3 · 设置参数}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{workflow}:
+  \begin{itemize}
+    \item \texttt{完整 (含研究+封面)} — 推荐, 5 个 agent 全跑, 单篇 \(\sim\)3 分钟
+    \item \texttt{快速 (无研究)} — 跳过 TrendScout, 单篇 \(\sim\)90 秒
+  \end{itemize}
+  \item \textbf{并发数}: 默认 3 (太高会撞 OpenRouter rate limit, 建议 2–4)
+  \item \textbf{默认科目}: 行里没写科目时用这个
+\end{itemize}
+
+\subsection{Step 4 · 点「🚀 启动批量」}
+
+\begin{enumerate}[leftmargin=*]
+  \item 下方 \texttt{batch\_status} 区域出现网格状卡片, 实时显示每个 run 的进度
+  \item 单条卡片状态: \texttt{queued} \(\to\) \texttt{running} \(\to\) \texttt{done} / \texttt{failed}
+  \item 完成的 run 会自动把草稿写到「📝 草稿」tab, 不用刷新
+\end{enumerate}
+
+\begin{tipbox}
+\small
+此时可以\textbf{放心去喝咖啡}. 10 个选题并发 3, 全部跑完大约 12–15 分钟. 跑的过程也可以刷新页面, 状态从后端拉取不会丢.
+\end{tipbox}
+
+% ============================================================
+\section{核心用法 B · 挑稿 + 批量发布}
+
+\subsection{Step 1 · 切到「📝 草稿」tab}
+
+每条草稿卡片显示:
+\begin{itemize}[leftmargin=*]
+  \item 标题 / 摘要 / 标签
+  \item 3 张缩略图 (封面 + 2 正文图)
+  \item Critic 评分 (合规/事实/读感/平台契合)
+  \item \texttt{[source: ]} 是否已自动填 URL (带黄底高亮的 \texttt{TODO\_MANUAL} 表示没找到来源, 需手工补)
+\end{itemize}
+
+\subsection{Step 2 · 检查内容 (3 件事)}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{看封面图}: Seedream 4.5 中文文字基本不会错, 但偶尔字号/构图不理想 \(\to\) 在草稿里点编辑可重新生图
+  \item \textbf{看正文}: 通读一遍, 改错别字 / 删掉不喜欢的句子
+  \item \textbf{看 source}: 如果有黄色 \texttt{TODO\_MANUAL} 行, 自己 google 一下, 把 URL 填进 \texttt{[source: 这里]}
+\end{enumerate}
+
+\subsection{Step 3 · 批量发布}
+
+\begin{enumerate}[leftmargin=*]
+  \item 顶部勾选 \texttt{☑ 全选}, 或单独勾选要发的草稿 (按钮上会显示数量: \texttt{🚀 批量发布选中 (5)})
+  \item 点 \textbf{🚀 批量发布选中}
+  \item 系统按 6 秒间隔逐条调用 xhs-mcp 发布
+  \item 草稿状态从 \texttt{draft} \(\to\) \texttt{published}, 失败的会标红可以单独重试
+\end{enumerate}
+
+\begin{warnbox}
+\small
+\textbf{首次发布前强烈建议}: 先单独发 1–2 篇验证, App 里看效果 OK 再批量发. 小红书有同 IP 短时高频发布的限频风险.
+\end{warnbox}
+
+% ============================================================
+\section{核心用法 C · 单篇精修 (高优需求)}
+
+如果想为某个重点活动 (例如放榜日) 精雕细琢一篇:
+
+\begin{enumerate}[leftmargin=*]
+  \item 切到「🤖 Agents」tab (不展开批量)
+  \item 选 workflow = \texttt{🚀 完整流程 (5 agents)}
+  \item 填 \textbf{关键词} (TrendScout 用), \textbf{主题} (Strategist+Writer 用), 选科目和方向
+  \item Top N 设 5 (抓更多同类爆款, 研究更深)
+  \item 点 \textbf{🚀 启动 workflow}
+  \item 右侧 timeline 实时刷 agent 事件 (\texttt{tool\_call} / \texttt{llm\_response} / \texttt{critic\_score})
+  \item 跑完后产物在右侧 \texttt{📦 Run 产物}: research\_pack / brief / draft / critic\_report 都能看
+\end{enumerate}
+
+\begin{tipbox}
+\small
+单篇模式适合: (1) 调试新 agent prompt, (2) 重要稿件人肉看每一步输出, (3) 出问题时 debug.
+日常出量还是用批量模式.
+\end{tipbox}
+
+% ============================================================
+\section{Seedream 4.5 出图效果示例}
+
+下面这张是 Seedream 4.5 直接出的封面 (无后期 PS), 注意中文文字、emoji 都准确渲染:
+
+\begin{center}
+\fbox{\includegraphics[width=8cm]{/Users/lance/marketing/xhs-hkdse/webapp/cache/images/seedream-smoke/cover.png}}
+\end{center}
+
+\begin{tipbox}
+\small
+\textbf{prompt 写得好不好直接决定出图质量}. CoverDesigner agent 已经按 Seedream 的最佳实践调好了:
+\begin{itemize}
+  \item 用中文 prompt (不再像 Gemini 时期要英文)
+  \item 要在画面里出现的文字用引号包起来
+  \item 标明每段文字的: 内容 / 颜色 / 字号 / 位置
+  \item 给视觉元素清单, 别堆形容词
+\end{itemize}
+\end{tipbox}
+
+% ============================================================
+\section{常见问题排查}
+
+\subsection{右上角 chip 显示 \texttt{🔴 未登录}}
+\begin{enumerate}[leftmargin=*]
+  \item 点 chip 强制刷新一次
+  \item 还是红 \(\to\) 检查 xhs-mcp 是不是在跑 (\texttt{lsof -i:18060})
+  \item 重新跑 \texttt{./xiaohongshu-login-darwin-arm64} 扫码
+\end{enumerate}
+
+\subsection{封面文字渲染错}
+\begin{enumerate}[leftmargin=*]
+  \item Seedream 4.5 已经把错字率压到 5\% 以下, 偶尔遇到点重新生图按钮即可
+  \item 持续错 \(\to\) 检查 prompt 里是不是写了奇怪符号 (\#FFD400 这种 hex 会被当成文字渲染)
+\end{enumerate}
+
+\subsection{批量跑到一半某个 run 卡住}
+\begin{enumerate}[leftmargin=*]
+  \item 这个 run 卡片会显示 \texttt{running} 超过 5 分钟
+  \item 不影响其他 run, 完成的草稿照常进入「📝 草稿」
+  \item 卡住的 run 在「📊 历史」tab 可以看具体错误日志
+\end{enumerate}
+
+\subsection{发布失败 / 提示风控}
+\begin{enumerate}[leftmargin=*]
+  \item 单条间隔太短 \(\to\) 改 \texttt{studio.js} 里的 6000ms 为 10000ms
+  \item 内容触发关键词风控 \(\to\) 看错误信息, 改掉敏感词重发
+  \item 帐号本身被限流 \(\to\) 隔天再试, 或换帐号 (多帐号 v2 支持)
+\end{enumerate}
+
+\subsection{OpenRouter 余额不够}
+\begin{enumerate}[leftmargin=*]
+  \item LLM 调用失败会在 timeline 显示 \texttt{402 Insufficient credits}
+  \item 去 \href{https://openrouter.ai/credits}{openrouter.ai/credits} 充值即可
+  \item 估算成本: Claude Sonnet 4.5 单篇约 \$0.05; Seedream 3 张 \$0.12; 合计 \(\approx\) \$0.17 / 篇
+\end{enumerate}
+
+% ============================================================
+\section{进阶: 改 Agent Prompt}
+
+所有 agent 的 system prompt 都在 \texttt{webapp/agents.yaml}, 改完保存即可热生效 (FastAPI 自动 reload).
+
+例如要让 \textbf{封面设计师}更激进:
+
+\begin{cmdbox}
+\# 编辑 webapp/agents.yaml\\
+\# 找到 - id: cover\_designer\\
+\# 改 system\_prompt 里的具体要求, 例如:\\
+\# \quad - 主标题字号: 整张图宽度 80\% 以上\\
+\# \quad - 配色固定为黄黑或红黑 (品牌色)\\
+\# \quad - emoji 限定在: 📚 🔥 💯
+\end{cmdbox}
+
+\begin{warnbox}
+\small
+改 prompt 时建议先复制原文备份. 出问题可以删掉 \texttt{cover\_designer} 那一段, 重启 app 会从 \texttt{specs.py} 的 \texttt{DEFAULT\_SPECS} 自动重新生成默认版.
+\end{warnbox}
+
+% ============================================================
+\section{一页流程速查}
+
+\begin{tcolorbox}[colback=xhsBg, colframe=xhsRed, arc=3mm, breakable, title={\large\bfseries 日常一键出量 SOP}, fonttitle=\color{white}]
+\textbf{开机后第一次}: \\
+\quad ① 跑 xhs-mcp serve\quad ② 跑 webapp\quad ③ 浏览器开 \texttt{:8080/studio}\quad ④ 验登录绿灯
+\\[6pt]
+\textbf{出 10 篇带图带 source 草稿}:\\
+\quad 🤖 Agents tab \(\to\) 展开📦批量 \(\to\) 贴 10 行选题 \(\to\) 完整流程 \(\to\) 并发 3 \(\to\) 启动 \(\to\) 等 15 分钟
+\\[6pt]
+\textbf{挑稿发布}:\\
+\quad 📝 草稿 tab \(\to\) 看图 / 看文 / 补 source \(\to\) 全选或勾选 \(\to\) 🚀 批量发布
+\\[6pt]
+\textbf{出问题}:\\
+\quad 📊 历史 tab 看 run 日志, 或 terminal 看 \texttt{webapp/app.log}
+\end{tcolorbox}
+
+\vspace{1cm}
+\begin{center}
+\textit{祝出量顺利, Marketing 同事下班早.}
+\end{center}
+
+\end{document}

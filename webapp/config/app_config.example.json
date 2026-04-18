@@ -1,0 +1,15 @@
+{
+  "_README": "复制本文件为 app_config.json (同目录), 然后填上自己的 key. app_config.json 已在 .gitignore.",
+
+  "llm_api_key": "sk-or-v1-YOUR_OPENROUTER_KEY_HERE",
+  "openai_base_url": "https://openrouter.ai/api/v1",
+  "default_model": "anthropic/claude-sonnet-4.5",
+
+  "tavily_api_key": "tvly-YOUR_TAVILY_KEY_HERE_OPTIONAL",
+  "jina_api_key": "jina_YOUR_JINA_KEY_HERE_OPTIONAL",
+
+  "xhs_mcp_url": "http://localhost:18060/mcp",
+
+  "image_model": "bytedance-seed/seedream-4.5",
+  "openrouter_api_key": ""
+}

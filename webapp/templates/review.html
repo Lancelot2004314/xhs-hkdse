@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HKDSE 审核台 | XHS Content Factory</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
+      background: #0f1115; color: #e7e9ee; min-height: 100vh;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+    h1 { font-size: 22px; margin: 0 0 6px; }
+    .sub { color: #8a93a6; font-size: 13px; margin-bottom: 24px; }
+    .card {
+      background: #171a21; border: 1px solid #232733; border-radius: 14px;
+      padding: 20px; margin-bottom: 18px;
+    }
+    .row { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+    label { font-size: 12px; color: #8a93a6; display: block; margin-bottom: 6px; }
+    input[type=text], select, textarea {
+      width: 100%; background: #0f1218; color: #e7e9ee; border: 1px solid #2a2f3c;
+      border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: inherit;
+    }
+    textarea { resize: vertical; min-height: 220px; line-height: 1.6; }
+    button {
+      cursor: pointer; border: 0; border-radius: 8px; padding: 10px 18px;
+      font-size: 14px; font-weight: 600; transition: 0.15s;
+    }
+    .btn-primary { background: #ff2741; color: white; }
+    .btn-primary:hover { background: #ff465c; }
+    .btn-secondary { background: #2a2f3c; color: #e7e9ee; }
+    .btn-secondary:hover { background: #353b4d; }
+    .btn-ghost { background: transparent; color: #8a93a6; border: 1px solid #2a2f3c; }
+    .btn-ghost:hover { color: #e7e9ee; border-color: #3a4154; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .preview-grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+    @media (max-width: 700px) { .preview-grid { grid-template-columns: 1fr; } }
+    .img-stack { display: flex; flex-direction: column; gap: 8px; }
+    .img-thumb {
+      width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px;
+      background: #0f1218; border: 1px solid #232733;
+    }
+    .img-add {
+      display: flex; align-items: center; justify-content: center; min-height: 40px;
+      background: #0f1218; border: 1px dashed #3a4154; border-radius: 8px;
+      color: #8a93a6; font-size: 12px; padding: 8px; cursor: pointer;
+    }
+    .tag-chip {
+      display: inline-block; background: #1f242f; color: #b6bdcc;
+      padding: 4px 10px; border-radius: 999px; font-size: 12px; margin: 0 6px 6px 0;
+    }
+    .status {
+      padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 10px;
+    }
+    .status-info { background: #1c2435; color: #8fb3ff; }
+    .status-ok { background: #142a1f; color: #67d99c; }
+    .status-err { background: #2a1518; color: #ff7a8a; }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px; border: 2px solid #555;
+      border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;
+      vertical-align: middle; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .meta { font-size: 12px; color: #8a93a6; margin-top: 8px; }
+    .pill {
+      display: inline-block; background: #2a1f15; color: #ffb066; padding: 3px 8px;
+      border-radius: 6px; font-size: 11px; font-weight: 600; margin-left: 8px;
+    }
+    a.link { color: #8fb3ff; text-decoration: none; }
+    a.link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>HKDSE 审核台<span class="pill">PREVIEW THEN PUBLISH</span></h1>
+    <div class="sub">输入选题 → AI 生成预览 → 你审核 → 点「发布到小红书」才真发出去</div>
+
+    <!-- Step 1: 选题输入 -->
+    <div class="card">
+      <label>选题 / 主题</label>
+      <input id="topic" type="text" placeholder="例: DSE 中文写作如何 5 分钟想出 3 个高分立意?" />
+      <div class="row" style="margin-top: 12px; align-items: center;">
+        <div style="flex: 0 0 200px;">
+          <label>内容类型</label>
+          <select id="content_type">
+            <option value="general">通用 (general)</option>
+            <option value="paper_analysis">真题解析 (paper_analysis)</option>
+          </select>
+        </div>
+        <div style="flex: 1; display: flex; align-items: flex-end; justify-content: flex-end;">
+          <button class="btn-primary" id="btn-generate">生成预览</button>
+        </div>
+      </div>
+      <div id="gen-status"></div>
+    </div>
+
+    <!-- Step 2: 预览 + 编辑 + 发布 -->
+    <div class="card" id="preview-card" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <strong>草稿预览 (可编辑)</strong>
+        <span class="meta" id="draft-meta"></span>
+      </div>
+
+      <div class="preview-grid">
+        <!-- 左: 图片 -->
+        <div>
+          <label>封面 / 图片 (URL, 每行一个, 至少 1 张)</label>
+          <div id="img-list" class="img-stack"></div>
+          <textarea id="images" rows="4" style="margin-top: 8px;" placeholder="https://..."></textarea>
+        </div>
+
+        <!-- 右: 标题/正文/标签 -->
+        <div>
+          <label>标题 (建议 ≤ 20 字)</label>
+          <input id="title" type="text" />
+
+          <label style="margin-top: 12px;">正文</label>
+          <textarea id="content" rows="14"></textarea>
+
+          <label style="margin-top: 12px;">标签 (用空格或逗号分隔, # 自动加)</label>
+          <input id="tags" type="text" placeholder="HKDSE 中文写作 应试技巧" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary" id="btn-publish">✅ 确认无误, 发布到小红书</button>
+        <button class="btn-secondary" id="btn-regen">🔄 重新生成</button>
+        <button class="btn-ghost" id="btn-discard">🗑 丢弃</button>
+      </div>
+      <div id="pub-status"></div>
+    </div>
+
+    <p class="meta" style="margin-top: 24px;">
+      其他工具: <a class="link" href="/">完整版 UI</a> &nbsp; · &nbsp;
+      MCP 状态: <a class="link" href="http://localhost:18060/health" target="_blank">xhs MCP</a>
+    </p>
+  </div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const btnGen = $('btn-generate'), btnPub = $('btn-publish'),
+        btnRegen = $('btn-regen'), btnDiscard = $('btn-discard');
+
+  function setStatus(elId, type, html) {
+    const el = $(elId);
+    el.innerHTML = html ? `<div class="status status-${type}">${html}</div>` : '';
+  }
+
+  function renderImages(urls) {
+    const list = $('img-list');
+    list.innerHTML = '';
+    (urls || []).forEach(u => {
+      const img = document.createElement('img');
+      img.src = u; img.className = 'img-thumb';
+      img.onerror = () => { img.style.opacity = 0.3; img.alt = '加载失败: ' + u; };
+      list.appendChild(img);
+    });
+    $('images').value = (urls || []).join('\n');
+  }
+
+  function fillDraft(d) {
+    $('title').value = d.title || '';
+    $('content').value = d.content || '';
+    $('tags').value = (d.tags || []).join(' ');
+    renderImages(d.images || []);
+    $('preview-card').style.display = 'block';
+    $('draft-meta').textContent = `选题: ${d.topic || ''}  ·  ${(d.images || []).length} 图`;
+    window.scrollTo({ top: $('preview-card').offsetTop - 20, behavior: 'smooth' });
+  }
+
+  async function generate() {
+    const topic = $('topic').value.trim();
+    if (!topic) { setStatus('gen-status', 'err', '请输入选题'); return; }
+    btnGen.disabled = true;
+    setStatus('gen-status', 'info', '<span class="spinner"></span>生成中... (调研 + LLM, 约 30-90 秒)');
+    try {
+      const r = await fetch('/api/preview', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ topic, content_type: $('content_type').value })
+      });
+      const j = await r.json();
+      if (!r.ok || !j.success) throw new Error(j.detail || j.message || '生成失败');
+      setStatus('gen-status', 'ok', '✅ 草稿生成完成, 已写入审核队列');
+      fillDraft(j.data);
+    } catch (e) {
+      setStatus('gen-status', 'err', '❌ ' + e.message);
+    } finally {
+      btnGen.disabled = false;
+    }
+  }
+
+  async function publish() {
+    const title = $('title').value.trim();
+    const content = $('content').value.trim();
+    const images = $('images').value.split('\n').map(s => s.trim()).filter(Boolean);
+    const tags = $('tags').value.split(/[\s,，]+/).map(s => s.trim().replace(/^#/, '')).filter(Boolean);
+
+    if (!title || !content || images.length === 0) {
+      setStatus('pub-status', 'err', '标题/正文/图片至少 1 张, 都要有');
+      return;
+    }
+    if (!confirm(`确认要发布到小红书?\n\n标题: ${title}\n图片: ${images.length} 张`)) return;
+
+    btnPub.disabled = true;
+    setStatus('pub-status', 'info', '<span class="spinner"></span>发布中...');
+    try {
+      const r = await fetch('/api/publish-now', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ title, content, images, tags })
+      });
+      const j = await r.json();
+      if (!r.ok || !j.success) throw new Error(j.detail || j.message || '发布失败');
+      setStatus('pub-status', 'ok', '🎉 已发布到小红书! 去 App 看看吧');
+    } catch (e) {
+      setStatus('pub-status', 'err', '❌ ' + e.message);
+    } finally {
+      btnPub.disabled = false;
+    }
+  }
+
+  btnGen.addEventListener('click', generate);
+  btnPub.addEventListener('click', publish);
+  btnRegen.addEventListener('click', generate);
+  btnDiscard.addEventListener('click', () => {
+    if (confirm('丢弃当前草稿?')) {
+      $('preview-card').style.display = 'none';
+      setStatus('gen-status', '', '');
+      setStatus('pub-status', '', '');
+    }
+  });
+  $('topic').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); generate(); }
+  });
+</script>
+</body>
+</html>

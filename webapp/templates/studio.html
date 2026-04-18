@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ brand_short or "質心教育" }} · 小红书 Studio</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      margin: 0;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      font-size: 14px;
+    }
+    a { color: #ff2442; text-decoration: none; }
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      border: 1px solid #d2d2d7;
+      background: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+    button:hover { background: #f5f5f7; }
+    button.primary {
+      background: #ff2442; color: #fff; border-color: #ff2442;
+    }
+    button.primary:hover { background: #e6203c; }
+    button.danger {
+      background: #fff; color: #d70015; border-color: #ffc4cb;
+    }
+    button.danger:hover { background: #fff5f5; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    input, select, textarea {
+      font-family: inherit;
+      font-size: 14px;
+      border: 1px solid #d2d2d7;
+      border-radius: 8px;
+      padding: 8px 12px;
+      background: #fff;
+      width: 100%;
+    }
+    textarea { resize: vertical; line-height: 1.6; }
+    label.field { display: block; margin-bottom: 12px; }
+    label.field > span { display:block; color:#86868b; margin-bottom:4px; font-size:12px; }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #efeff4;
+      color: #424245;
+      margin-right: 4px;
+    }
+    .pill.success { background:#e6f7ed; color:#0a7836; }
+    .pill.error   { background:#fde8ea; color:#b00020; }
+    .pill.draft   { background:#fff4d6; color:#8a6500; }
+    .pill.warn    { background:#fff4d6; color:#8a6500; }
+
+    /* Header */
+    header.app-header {
+      position: sticky; top:0; z-index:50;
+      background: #fff;
+      border-bottom: 1px solid #ececef;
+      display: flex; align-items: center;
+      padding: 10px 24px;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+    }
+    .brand {
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: 0.5px;
+      color: #1d1d1f;
+      margin-right: 24px;
+    }
+    .brand .accent { color:#ff2442; }
+    nav.tabs { display: flex; gap: 4px; }
+    nav.tabs button {
+      border: none; background: transparent; padding: 8px 14px;
+      border-radius: 8px; color: #424245; font-weight: 500;
+    }
+    nav.tabs button.active {
+      background: #ff2442; color: #fff;
+    }
+    .header-spacer { flex: 1; }
+    .account-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; background: #f5f5f7; border-radius: 999px;
+      font-size: 12px; color: #424245;
+    }
+    .dot { width:8px; height:8px; border-radius:50%; background:#999; }
+    .dot.green { background:#34c759; }
+    .dot.red   { background:#ff3b30; }
+
+    /* Layout */
+    main { max-width: 1280px; margin: 24px auto; padding: 0 24px; }
+    .card {
+      background: #fff; border-radius: 14px;
+      padding: 20px; margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    h2 { margin: 0 0 16px; font-size: 18px; }
+    h3 { margin: 0 0 8px; font-size: 14px; color:#424245; }
+    .row { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+    .row > * { flex: 1 1 160px; min-width: 0; }
+    .row > .grow { flex: 3 1 320px; }
+    .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+
+    /* Research grid */
+    .grid {
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    .note-card {
+      border: 1px solid #ececef; border-radius: 12px;
+      overflow: hidden; background: #fff;
+      cursor: pointer; transition: all 0.15s;
+      display: flex; flex-direction: column;
+    }
+    .note-card:hover { border-color: #ff2442; transform: translateY(-2px); }
+    .note-card.selected { border-color: #ff2442; box-shadow: 0 0 0 2px #ff2442; }
+    .note-card .cover {
+      width: 100%; aspect-ratio: 3/4;
+      background: #f5f5f7 center/cover no-repeat;
+    }
+    .note-card .meta {
+      padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .note-card .title {
+      font-size: 13px; font-weight: 600;
+      line-height: 1.4; color: #1d1d1f;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .note-card .stats {
+      font-size: 11px; color: #86868b;
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+
+    /* Brief panel */
+    .brief-panel { font-size: 13px; line-height: 1.6; }
+    .brief-panel ul { padding-left: 20px; margin: 4px 0; }
+    .brief-panel .label { color:#86868b; font-size:12px; margin-top:8px; }
+
+    /* Drafts */
+    .drafts-layout { display: grid; gap: 16px; grid-template-columns: 280px 1fr; min-height: 70vh; }
+    .draft-list { background:#fff; border-radius: 12px; padding: 8px; max-height: 78vh; overflow:auto; }
+    .draft-item {
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      border-left: 3px solid transparent;
+    }
+    .draft-item:hover { background: #f5f5f7; }
+    .draft-item.active { background: #fff4d6; border-left-color: #ff2442; }
+    .draft-item .draft-title { font-weight: 600; font-size: 13px; line-height: 1.4; }
+    .draft-item .draft-meta { font-size: 11px; color: #86868b; margin-top: 2px; }
+
+    .draft-editor { background:#fff; border-radius:12px; padding: 20px; }
+    .draft-editor textarea.content-edit { min-height: 320px; font-size: 14px; line-height: 1.7; }
+    .fact-line {
+      display: block; padding: 1px 4px; border-radius: 4px;
+      background: #fff4d6; border-left: 2px solid #ff9500;
+    }
+    .fact-line.todo-source {
+      background: #ffe4e4; border-left-color: #ff3b30;
+    }
+    .thumb-card {
+      background:#f5f5f7; border-radius:8px; overflow:hidden;
+      display:flex; flex-direction:column;
+    }
+    .thumb-card img {
+      width:100%; aspect-ratio: 3/4; object-fit: cover; display:block;
+      background:#e5e5ea;
+    }
+    .thumb-label {
+      font-size:11px; color:#86868b; padding:4px 6px; text-align:center;
+    }
+
+    /* History */
+    table.history { width:100%; border-collapse: collapse; font-size: 13px; }
+    table.history th, table.history td {
+      text-align: left; padding: 10px 8px; border-bottom: 1px solid #ececef;
+    }
+    table.history th { color:#86868b; font-weight: 500; font-size:12px; }
+    table.history tr:hover { background: #f9f9fb; }
+
+    /* Toast */
+    #toast {
+      position: fixed; right: 20px; bottom: 20px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast-item {
+      padding: 12px 16px; border-radius: 10px;
+      background: #1d1d1f; color: #fff;
+      font-size: 13px; min-width: 240px; max-width: 380px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      animation: slidein 0.2s;
+    }
+    .toast-item.error { background: #d70015; }
+    .toast-item.success { background: #0a7836; }
+    @keyframes slidein { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* loading */
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid #ececef; border-top-color: #ff2442;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty {
+      padding: 60px 20px; text-align: center;
+      color: #86868b; font-size: 13px;
+    }
+    .checkbox-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .checkbox-list label {
+      display: inline-flex; align-items:center; gap: 4px;
+      padding: 4px 10px; background:#f5f5f7; border-radius: 999px; cursor: pointer;
+    }
+    .checkbox-list input { width: auto; }
+
+    @media (max-width: 800px) {
+      .drafts-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ========== Agents tab (multi-agent timeline) ========== */
+    .agents-layout { display: grid; gap: 16px; grid-template-columns: 380px 1fr; min-height: 80vh; }
+    @media (max-width: 980px) { .agents-layout { grid-template-columns: 1fr; } }
+    .timeline {
+      background:#fff; border-radius:12px; padding: 16px;
+      max-height: 80vh; overflow:auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+    .ev {
+      padding: 6px 8px; border-left: 3px solid #ececef; margin-bottom: 4px;
+      border-radius: 0 6px 6px 0; background: #fafbfc; line-height: 1.45;
+    }
+    .ev .ev-head { display:flex; gap:6px; align-items:baseline; flex-wrap:wrap; }
+    .ev .ev-type { font-weight: 600; color:#86868b; font-size:10px; text-transform:uppercase; }
+    .ev .ev-agent { font-weight: 600; color:#1d1d1f; }
+    .ev .ev-iter { color:#86868b; font-size:11px; }
+    .ev .ev-summary { color:#424245; margin-top: 2px; }
+    .ev .ev-data { color:#86868b; font-size:11px; margin-top:2px; word-break:break-all; }
+    .ev.run_started, .ev.run_completed { background:#e6f7ed; border-left-color:#34c759; }
+    .ev.run_failed   { background:#fde8ea; border-left-color:#ff3b30; }
+    .ev.agent_started   { border-left-color:#007aff; }
+    .ev.agent_completed { border-left-color:#34c759; }
+    .ev.agent_failed    { border-left-color:#ff3b30; }
+    .ev.tool_call    { background:#f0f4ff; border-left-color:#007aff; }
+    .ev.tool_result  { background:#f4f8ff; border-left-color:#5ac8fa; }
+    .ev.critic_verdict.fail { background:#fde8ea; border-left-color:#ff3b30; }
+    .ev.critic_verdict.pass { background:#e6f7ed; border-left-color:#34c759; }
+    .ev.revision_triggered { background:#fff4d6; border-left-color:#ff9500; }
+
+    .agent-cards { display:grid; gap: 10px; grid-template-columns: repeat(6, 1fr); margin-bottom:12px; }
+    @media (max-width: 1200px) { .agent-cards { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 720px)  { .agent-cards { grid-template-columns: 1fr 1fr; } }
+
+    /* Batch grid */
+    .batch-grid {
+      display:grid; gap: 8px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    .batch-card {
+      background:#fff; border:1px solid #ececef; border-radius:10px;
+      padding: 10px 12px; font-size: 12px; line-height: 1.5;
+      display:flex; flex-direction: column; gap: 4px;
+    }
+    .batch-card.running   { border-color:#007aff; background:#f0f4ff; }
+    .batch-card.completed { border-color:#34c759; background:#e6f7ed; }
+    .batch-card.failed    { border-color:#ff3b30; background:#fde8ea; }
+    .batch-card .bc-title { font-weight:600; color:#1d1d1f; font-size:13px; line-height:1.3; }
+    .batch-card .bc-meta  { color:#86868b; font-size:11px; }
+    .batch-card .bc-bar   { background:#e5e5ea; border-radius: 6px; height: 4px; overflow:hidden; margin: 2px 0; }
+    .batch-card .bc-bar > span { display:block; height:100%; background:#007aff; transition: width 0.3s; }
+    details.batch-section > summary {
+      cursor: pointer; font-weight: 600; padding: 4px 0;
+      list-style: none; color:#1d1d1f;
+    }
+    details.batch-section > summary::-webkit-details-marker { display:none; }
+    details.batch-section > summary::before { content: "▶ "; transition: transform 0.2s; display:inline-block; }
+    details.batch-section[open] > summary::before { content: "▼ "; }
+    .agent-card {
+      background:#fff; border:2px solid #ececef; border-radius:10px;
+      padding: 10px 12px; font-size: 12px;
+      display:flex; flex-direction:column; gap: 4px;
+      transition: all 0.2s;
+    }
+    .agent-card.running   { border-color:#007aff; background:#f0f4ff; box-shadow: 0 0 0 3px rgba(0,122,255,0.1); }
+    .agent-card.completed { border-color:#34c759; background:#e6f7ed; }
+    .agent-card.failed    { border-color:#ff3b30; background:#fde8ea; }
+    .agent-card .ac-name  { font-weight:600; font-size: 13px; color:#1d1d1f; }
+    .agent-card .ac-role  { color:#86868b; font-size: 11px; }
+    .agent-card .ac-status{ font-size:11px; color:#424245; min-height: 16px; }
+
+    /* Agent Specs editor (in config tab) */
+    .specs-editor { display:grid; gap:10px; }
+    .spec-row {
+      background:#fafbfc; border:1px solid #ececef; border-radius:10px;
+      padding: 12px; font-size: 13px;
+    }
+    .spec-row .sr-head { display:flex; gap:8px; align-items:center; margin-bottom: 6px; }
+    .spec-row .sr-id { font-family: ui-monospace, monospace; color:#86868b; font-size:12px; }
+    .spec-row textarea { font-family: ui-monospace, monospace; font-size: 12px; min-height: 120px; }
+    .spec-row .sr-grid { display:grid; gap:8px; grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .spec-row .sr-grid label.field { margin: 0; }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">{{ brand_short or "質心教育" }} <span class="accent">XHS Studio</span></div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="agents" class="active">🤖 Agents</button>
+    <button data-tab="research">🔍 手动研究</button>
+    <button data-tab="drafts">📝 草稿</button>
+    <button data-tab="history">📊 历史</button>
+    <button data-tab="config">⚙️ 配置</button>
+  </nav>
+  <div class="header-spacer"></div>
+  <div class="account-chip" id="accountChip">
+    <span class="dot" id="accountDot"></span>
+    <span id="accountText">检查中…</span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ AGENTS TAB (multi-agent workflow with live timeline) ============ -->
+  <section id="tab-agents" class="tab-panel">
+    <div class="card">
+      <h2>🤖 Multi-Agent Workflow · 5 个专职 agent 自动完成研究→撰写→审稿→修订</h2>
+      <p style="color:#86868b; margin: -8px 0 12px;">
+        每个 agent 都是独立的 LLM + 工具集, 由 Orchestrator 编排.
+        Critic 自纠环最多跑 3 轮 (起稿 → 审 → 改 → 再审 → 再改), 全程 SSE 推到下面.
+      </p>
+      <div class="row">
+        <label class="field">
+          <span>Workflow</span>
+          <select id="ag_workflow">
+            <option value="research_to_draft">🚀 完整流程 (5 agents)</option>
+            <option value="quick_draft">⚡ 快速出稿 (Writer+Critic)</option>
+            <option value="rewrite">🔁 重审 + 修订 (已有 draft)</option>
+          </select>
+        </label>
+        <label class="field grow">
+          <span>关键词 (TrendScout 用)</span>
+          <input id="ag_keyword" placeholder="DSE 中文" value="DSE 中文" />
+        </label>
+        <label class="field grow">
+          <span>主题 (Strategist + Writer 用)</span>
+          <input id="ag_topic" placeholder="DSE 中文 Paper 1 阅读策略" value="DSE 中文 Paper 1 阅读策略" />
+        </label>
+        <label class="field">
+          <span>科目</span>
+          <select id="ag_subject">
+            <option>中文</option>
+            <option>英文</option>
+            <option>数学</option>
+            <option>M1/M2</option>
+            <option>通识/公民</option>
+            <option>物理</option>
+            <option>化学</option>
+            <option>生物</option>
+            <option>经济/BAFS</option>
+            <option>JUPAS</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>方向</span>
+          <select id="ag_angle">
+            <option value="soft_dry_goods">软干货</option>
+            <option value="hard_dry_goods">硬干货</option>
+            <option value="senior_story">学长故事</option>
+            <option value="parent">家长侧</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Top N</span>
+          <input id="ag_topn" type="number" min="1" max="6" value="3" />
+        </label>
+        <div style="flex:0 0 auto;">
+          <button class="primary" id="ag_runBtn">🚀 启动 workflow</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 12px;">
+      <details class="batch-section">
+        <summary>📦 批量模式 (一次跑 N 个选题)</summary>
+        <p style="color:#86868b; font-size:12px; margin: 8px 0;">
+          每行一个主题, 支持 <code>关键词 | 主题 | 科目 | 方向</code> 格式 (后三段可省). 空行/注释行(<code>#</code> 开头)忽略.
+          所有 run 并发跑 (默认 3), 跑完后所有草稿自动入「📝 草稿」tab, 你去那里挑顺眼的批量发.
+        </p>
+        <label class="field">
+          <span>主题列表</span>
+          <textarea id="batch_items" rows="8" placeholder="DSE 中文 Paper 1 阅读策略 | 中文 | soft_dry_goods&#10;DSE 英文 Paper 2 写作高分模板 | 英文 | hard_dry_goods&#10;DSE 数学 Paper 1 拣分策略 | 数学&#10;# 下面是注释, 会被跳过&#10;DSE 通识答题框架"></textarea>
+        </label>
+        <div class="row" style="gap:8px;">
+          <label class="field"><span>workflow</span>
+            <select id="batch_workflow">
+              <option value="research_to_draft">完整 (含研究+封面)</option>
+              <option value="quick_draft">快速 (无研究)</option>
+            </select>
+          </label>
+          <label class="field"><span>并发数 (1-10)</span>
+            <input id="batch_parallel" type="number" min="1" max="10" value="3" />
+          </label>
+          <label class="field"><span>默认科目</span>
+            <input id="batch_default_subject" value="通用" />
+          </label>
+          <div style="flex:0 0 auto; align-self:flex-end;">
+            <button class="primary" id="batch_runBtn">🚀 启动批量</button>
+          </div>
+        </div>
+        <div id="batch_status" style="margin-top: 12px;"></div>
+      </details>
+    </div>
+
+    <div class="agent-cards" id="agentCards">
+      <!-- 6 个 agent 卡片由 JS 渲染 -->
+    </div>
+
+    <div class="agents-layout">
+      <div class="card" style="margin:0; padding: 0;">
+        <div class="timeline" id="agentTimeline">
+          <div class="empty" style="padding: 40px 12px;">点击启动 workflow 后, 这里会实时滚 agent 事件</div>
+        </div>
+      </div>
+      <div class="card" style="margin:0;">
+        <h2 style="margin-top:0;">📦 Run 产物</h2>
+        <div id="ag_outputArea">
+          <div class="empty">workflow 完成后, 这里展示 research_pack / brief / draft / critic_report</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RESEARCH TAB ============ -->
+  <section id="tab-research" class="tab-panel" style="display:none;">
+    <div class="card">
+      <h2>第 1 步 · 直接搜小红书, 看真实爆款长什么样</h2>
+      <div class="row">
+        <label class="field grow">
+          <span>关键词 (例: DSE 中文 5**, JUPAS 选科)</span>
+          <input id="keyword" placeholder="DSE 中文 5**" />
+        </label>
+        <label class="field">
+          <span>科目</span>
+          <select id="subject">
+            <option value="">不指定</option>
+            <option value="中文">中文</option>
+            <option value="英文">英文</option>
+            <option value="数学">数学 (必修)</option>
+            <option value="M1/M2">数学 M1/M2</option>
+            <option value="通识/公民">通识/公民</option>
+            <option value="物理">物理</option>
+            <option value="化学">化学</option>
+            <option value="生物">生物</option>
+            <option value="经济">经济/BAFS</option>
+            <option value="ICT">ICT</option>
+            <option value="历史">历史/CHist</option>
+            <option value="地理">地理</option>
+            <option value="JUPAS">JUPAS/升学</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>排序</span>
+          <select id="sortBy">
+            <option>最多点赞</option>
+            <option>最多收藏</option>
+            <option>最多评论</option>
+            <option>最新</option>
+            <option>综合</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>类型</span>
+          <select id="noteType">
+            <option>图文</option>
+            <option>不限</option>
+            <option>视频</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>时间</span>
+          <select id="publishTime">
+            <option>不限</option>
+            <option>半年内</option>
+            <option>一周内</option>
+            <option>一天内</option>
+          </select>
+        </label>
+        <div style="flex: 0 0 auto;">
+          <button class="primary" id="searchBtn">🔍 搜索</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <h2 style="margin:0; flex:1;">第 2 步 · 勾选 2-4 篇你想模仿的</h2>
+        <span id="selectedCount" class="pill">已选 0</span>
+        <button id="fetchDetailsBtn" disabled>📖 拉详情</button>
+        <button class="primary" id="briefBtn" disabled>🧠 生成爆款配方</button>
+      </div>
+      <div id="cardsArea" class="grid">
+        <div class="empty">点击「搜索」查看真实小红书爆款笔记</div>
+      </div>
+    </div>
+
+    <div class="card" id="briefCard" style="display:none;">
+      <h2>第 3 步 · 爆款配方 (Brief)</h2>
+      <div id="briefArea" class="brief-panel"></div>
+      <div class="toolbar" style="margin-top: 16px;">
+        <label class="field" style="flex:1; margin:0;">
+          <span>额外指示给写手 (可选, 例: 主打 "暑假 60 天计划")</span>
+          <input id="extraInstr" placeholder="可空" />
+        </label>
+        <button class="primary" id="genDraftBtn">✍️ 生成草稿</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DRAFTS TAB ============ -->
+  <section id="tab-drafts" class="tab-panel" style="display:none;">
+    <div class="card">
+      <div class="toolbar">
+        <h2 style="margin:0; flex:1;">草稿审核台</h2>
+        <label style="font-size:12px; display:flex; align-items:center; gap:4px;">
+          <input type="checkbox" id="draft_select_all" /> 全选
+        </label>
+        <button id="batch_publish_btn" class="primary" disabled>🚀 批量发布选中 (0)</button>
+        <button id="reloadDraftsBtn">🔄 刷新</button>
+      </div>
+      <div class="drafts-layout">
+        <div class="draft-list" id="draftList">
+          <div class="empty">暂无草稿, 去研究 tab 生成</div>
+        </div>
+        <div class="draft-editor" id="draftEditor">
+          <div class="empty">从左侧选一个草稿审核</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HISTORY TAB ============ -->
+  <section id="tab-history" class="tab-panel" style="display:none;">
+    <div class="card">
+      <div class="toolbar">
+        <h2 style="margin:0; flex:1;">历史记录</h2>
+        <select id="historyStatus" style="width:auto;">
+          <option value="">全部</option>
+          <option value="success">已发布</option>
+          <option value="error">失败</option>
+          <option value="draft">草稿</option>
+        </select>
+        <button id="reloadHistoryBtn">🔄 刷新</button>
+      </div>
+      <div id="historyArea">
+        <div class="empty">点击刷新加载历史</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONFIG TAB ============ -->
+  <section id="tab-config" class="tab-panel" style="display:none;">
+    <div class="card">
+      <h2>API 凭证</h2>
+      <div class="row">
+        <label class="field grow">
+          <span>OpenRouter / OpenAI Key</span>
+          <input id="cfg_llm_key" placeholder="sk-or-v1-..." />
+        </label>
+        <label class="field">
+          <span>Base URL</span>
+          <input id="cfg_base_url" placeholder="https://openrouter.ai/api/v1" />
+        </label>
+      </div>
+      <div class="row">
+        <label class="field grow">
+          <span>主力模型</span>
+          <input id="cfg_model" placeholder="anthropic/claude-sonnet-4.5" />
+        </label>
+        <div style="flex:0 0 auto;">
+          <button id="validateModelBtn">✅ 验证模型</button>
+        </div>
+      </div>
+      <div class="row">
+        <label class="field grow">
+          <span>Tavily Key (可选, 事实查证)</span>
+          <input id="cfg_tavily" placeholder="tvly-..." />
+        </label>
+        <label class="field grow">
+          <span>Jina Key (可选, 网页阅读)</span>
+          <input id="cfg_jina" placeholder="jina_..." />
+        </label>
+      </div>
+      <div class="row">
+        <label class="field grow">
+          <span>xhs MCP URL (本地 Go 服务)</span>
+          <input id="cfg_xhs_url" placeholder="http://localhost:18060/mcp" />
+        </label>
+        <div style="flex:0 0 auto;">
+          <button id="testLoginBtn">🔓 测试登录</button>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-top: 16px;">
+        <button class="primary" id="saveConfigBtn">💾 保存配置</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>品牌人设 (只读)</h2>
+      <p style="color:#424245; line-height:1.7;">
+        <strong>{{ brand_full or "質心教育科技有限公司" }}</strong> · HKDSE 全科补习与升学指导<br/>
+        全 LLM 调用都会注入「{{ brand_short or "質心教育" }}」混合人设 system prompt:
+        公司编辑 + senior 学长口吻, 简体中文为主, 考试名称保留繁体/英文,
+        禁用绝对化承诺/同行点名/敏感话题, 硬事实强制 [source: ] 标注.
+      </p>
+      <p style="color:#86868b; font-size:12px;">
+        如需调整品牌人设, 编辑 <code>webapp/core/xhs_research.py</code> 顶部的
+        <code>BRAND_VOICE_SYSTEM_PROMPT</code> 常量.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <h2 style="margin:0; flex:1;">🤖 Agent 规格 (写在 <code>webapp/agents.yaml</code>)</h2>
+        <button id="reloadSpecsBtn">🔄 重载</button>
+        <button class="primary" id="saveSpecsBtn">💾 保存到 YAML</button>
+      </div>
+      <p style="color:#86868b; font-size: 12px; margin:-4px 0 12px;">
+        每个 agent 的 system prompt / 模型 / 温度 / 工具集都可在这里改, 保存后所有
+        workflow 立即生效 (orchestrator 会自动重建). 工具集逗号分隔.
+      </p>
+      <div class="specs-editor" id="specsEditor">
+        <div class="empty">加载中…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>多账号 (规划中)</h2>
+      <p style="color:#86868b;">
+        v1 仅支持 1 个 xhs MCP 实例. 未来可在 xhs-mcp 启动多实例 (不同 cookies + 不同端口),
+        然后这里可切换. <span class="pill warn">v2</span>
+      </p>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script src="/static/js/studio.js"></script>
+</body>
+</html>

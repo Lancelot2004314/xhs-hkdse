@@ -1,0 +1,86 @@
+# =================================================================
+# 🔒 SECRETS — never commit
+# =================================================================
+webapp/config/app_config.json
+config/app_config.json
+secrets.yaml
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Login cookies (xhs-mcp)
+xhs-mcp/cookies.json
+
+# =================================================================
+# 🗑  Local runtime artifacts
+# =================================================================
+# Generated covers / body images (per-run)
+webapp/cache/images/
+covers/output/
+
+# Local task history (per-user drafts)
+webapp/cache/task_history.json
+webapp/cache/*.json
+!webapp/cache/.keep
+
+# Logs
+*.log
+webapp/app.log
+webapp/logs/
+xhs-mcp/*.log
+
+# =================================================================
+# 📦 Binaries (download separately, see README)
+# =================================================================
+xhs-mcp/xiaohongshu-mcp-*
+xhs-mcp/xiaohongshu-login-*
+
+# =================================================================
+# 🐍 Python
+# =================================================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# =================================================================
+# 📦 Node
+# =================================================================
+node_modules/
+.next/
+dist/
+build/
+
+# =================================================================
+# 📊 Analytics / collected data
+# =================================================================
+analytics/*.csv
+collector-data/*.json
+collector-data/*.csv
+
+# =================================================================
+# 💻 OS / IDE
+# =================================================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =================================================================
+# 📄 LaTeX intermediates
+# =================================================================
+docs/*.aux
+docs/*.log
+docs/*.out
+docs/*.toc
+docs/*.synctex.gz
