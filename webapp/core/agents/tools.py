@@ -234,23 +234,46 @@ def make_xhs_tools(
 ) -> List[Tool]:
     """构建调 xhs-mcp 的工具集. 每次调用都开新 session 避免长连接污染."""
 
+    # 进程级 "mcp search 已坏" 标记 — 一次失败后 5 分钟内所有 search_feeds
+    # 直接走 Tavily, 不再浪费时间在已知坏掉的 mcp 上.
+    # (state 用 list 包一下避开 nonlocal 限制, 简单)
+    _mcp_search_broken_until: List[float] = [0.0]
+    SEARCH_BROKEN_TTL = 300.0  # 5 分钟
+
     async def _search_feeds(args: Dict[str, Any]) -> Any:
         keyword = args.get("keyword") or ""
         if not keyword:
             raise ValueError("keyword 必填")
+
+        logger = logging.getLogger(__name__)
+        now = time.time()
+
+        # 5 分钟内已知 mcp search 坏掉 → 直接走 fallback, 不再尝试
+        if tavily_api_key and now < _mcp_search_broken_until[0]:
+            remain = int(_mcp_search_broken_until[0] - now)
+            logger.info(
+                "🔁 search_feeds 直接走 Tavily fallback (mcp search 标记为坏, "
+                "还剩 %ds 才会重新尝试 mcp)", remain
+            )
+            import json as _json
+            fb = await _fallback_search_via_tavily(keyword, tavily_api_key)
+            return _json.dumps(fb, ensure_ascii=False)
+
         # 实测: filters 参数会让 xhs-mcp 浏览器自动化 hang. 不传, 客户端排序.
+        # timeout 30s + 0 retry: 上游正常时 6-9s 返回, 坏时 30s 已经够判定,
+        # 不浪费 3 分钟在重试上 (issue #657 评论说重试也几乎没用).
         try:
             res = await _call_xhs_with_retry(
-                xhs_mcp_url, "search_feeds", {"keyword": keyword}, timeout=60, retries=2
+                xhs_mcp_url, "search_feeds", {"keyword": keyword}, timeout=30, retries=0
             )
             return _mcp_text(res)
         except Exception as exc:
-            # 上游 xhs-mcp search_feeds 已知 bug (issue #657 等): 多次重试仍失败,
-            # 自动 fallback 到 Tavily web 搜索. 没有 tavily key 才把异常抛给 LLM.
             if tavily_api_key:
-                logger = logging.getLogger(__name__)
+                _mcp_search_broken_until[0] = time.time() + SEARCH_BROKEN_TTL
                 logger.warning(
-                    "🔁 search_feeds 重试 3 次仍失败, 自动 fallback 到 Tavily: %s",
+                    "🔁 search_feeds 失败, fallback 到 Tavily + 标记 mcp search "
+                    "坏掉 %ds: %s",
+                    int(SEARCH_BROKEN_TTL),
                     str(exc)[:200],
                 )
                 import json as _json
