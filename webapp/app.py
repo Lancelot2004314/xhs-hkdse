@@ -47,6 +47,22 @@ from core.agents.workflows import list_workflows
 from config.config_manager import ConfigManager
 from cache.cache_manager import CacheManager
 
+# 小红书平台硬限制 (超出 publish API 会拒绝/截断)
+XHS_TITLE_HARD_CAP = 20
+XHS_CONTENT_HARD_CAP = 1000
+
+
+def _enforce_xhs_caps(title: str, body: str) -> tuple[str, str]:
+    """最后一道防线: LLM 偶尔超长时静默截断到平台硬上限, 避免 publish 被 reject.
+    Writer/Critic prompt 已经把 soft cap 设成 18/900, 这里 20/1000 是 platform 物理上限."""
+    if len(title) > XHS_TITLE_HARD_CAP:
+        logger.warning(f"⚠️ title 超 {XHS_TITLE_HARD_CAP} 字 ({len(title)}), 截断: {title!r}")
+        title = title[:XHS_TITLE_HARD_CAP]
+    if len(body) > XHS_CONTENT_HARD_CAP:
+        logger.warning(f"⚠️ content 超 {XHS_CONTENT_HARD_CAP} 字 ({len(body)}), 截断")
+        body = body[:XHS_CONTENT_HARD_CAP]
+    return title, body
+
 # 获取当前文件的目录
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -515,12 +531,13 @@ async def publish_now(request_data: PublishNowRequest) -> Dict[str, Any]:
             if tag_line:
                 body = f"{body}\n\n{tag_line}"
 
+        safe_title, safe_body = _enforce_xhs_caps(request_data.title, body)
         args = {
-            'title': request_data.title,
-            'content': body,
+            'title': safe_title,
+            'content': safe_body,
             'images': request_data.images,
         }
-        logger.info(f"📤 直接发布: title={request_data.title}, images={len(request_data.images)}")
+        logger.info(f"📤 直接发布: title={safe_title} ({len(safe_title)}字), content {len(safe_body)}字, {len(request_data.images)} 张图")
         async with _fresh_xhs_session(xhs_url) as session:
             tool_result = await asyncio.wait_for(
                 session.call_tool('publish_content', args),
@@ -747,8 +764,9 @@ async def api_publish_draft(draft_id: str, req: DraftPublishRequest) -> Dict[str
         if tag_line:
             body = f"{body}\n\n{tag_line}"
 
-    args = {"title": title, "content": body, "images": images}
-    logger.info(f"📤 发布草稿 {draft_id}: {title} ({len(images)} 张图)")
+    safe_title, safe_body = _enforce_xhs_caps(title, body)
+    args = {"title": safe_title, "content": safe_body, "images": images}
+    logger.info(f"📤 发布草稿 {draft_id}: {safe_title} ({len(safe_title)}字), content {len(safe_body)}字, {len(images)} 张图")
     try:
         async with _fresh_xhs_session(xhs_url) as session:
             tool_result = await asyncio.wait_for(

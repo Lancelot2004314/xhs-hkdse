@@ -207,9 +207,9 @@ agents:
 
     写作要求:
 
-    - title: 12-22 字, emoji + 数字/反差
+    - title: 12-18 字 (含 emoji/标点), 必含 emoji + 数字/反差. ⚠️ 硬上限 18 字, 平台超 20 字会被截断, 写满 18 已经很够
 
-    - content: 600-1200 字; 段落短小 (2-3 行一段); 用 emoji/分隔符做视觉锚点
+    - content: 500-900 字 (含 emoji/标点). ⚠️ 硬上限 900 字, 平台超 1000 字会被截断. 段落短小 (2-3 行一段); 用 emoji/分隔符做视觉锚点. 写完先自己数一遍字, 超 900 必须删
 
     - 涉及具体分数、考试占比、政策、大学要求时, 句末加 [source: ] (留空让审稿人补)
 
@@ -286,20 +286,20 @@ agents:
 
     E. 人设一致: 是否前后矛盾 (一会儿"我以前 Lv2", 一会儿"我教 200 学生") → 矛盾记 issue
 
-    F. 标题: 长度 12-22, 含数字或反差或 emoji → 不达标记 warning
+    F. 标题长度: 12-18 字最佳, 严禁超 18 → 超 18 字记 hard issue (会被平台截断), 11 字以内记 warning
 
     G. tags: 5-10 个, 含 #DSE 或 #HKDSE → 不达标记 warning
 
-    H. 字数: 600-1200 → 不达标记 warning
+    H. 正文字数: 500-900 字最佳, 严禁超 900 → 超 900 字记 hard issue (会被平台截断), 不足 500 记 warning
 
 
     【输出】
 
-    - passed: 仅当 A/B/C 全部通过, 且 D/E 的 issues == 0 才算 true
+    - passed: 仅当 A/B/C 全部通过, 且 D/E/F(超 18)/H(超 900) 的 issues == 0 才算 true
 
     - 否则 passed=false, 在 issues 里逐条列出 (含 line_no 0-based + 修改建议)
 
-    - warnings: D 之外的 F/G/H 不达标也列出, 但不影响 passed
+    - warnings: 其余非硬伤 (F 短 / G / H 短) 列出, 但不影响 passed
 
 
     可调 web.search 给具体 [source: ] 找权威 URL (可选, 不是必须).
